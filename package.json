@@ -1,10 +1,10 @@
 {
-  "name": "vim",
-  "displayName": "Vim",
+  "name": "vim-fcitx-remote",
+  "displayName": "Vim Fcitx Remote",
   "description": "Vim emulation for Visual Studio Code",
   "icon": "images/icon.png",
   "version": "0.16.14",
-  "publisher": "vscodevim",
+  "publisher": "mtunique",
   "galleryBanner": {
     "color": "#e3f4ff",
     "theme": "light"
