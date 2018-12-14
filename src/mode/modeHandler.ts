@@ -33,12 +33,15 @@ import { Mode, ModeName, VSCodeVimCursorType } from './mode';
 import { logger } from '../util/logger';
 import { Neovim } from '../neovim/neovim';
 import { Jump } from '../jumps/jump';
+const cp = require('child_process');
 
 export class ModeHandler implements vscode.Disposable {
   private _disposables: vscode.Disposable[] = [];
   private _modes: Mode[];
   private _remappers: Remappers;
 
+  private _prevMode: ModeName;
+  private _changedKeyBoard: boolean = false;
   /**
    * Last vim.mode sent to vscode, for updating keybindings.
    * It is static, as the context applies across editors.
@@ -277,10 +280,24 @@ export class ModeHandler implements vscode.Disposable {
   }
 
   private async setCurrentMode(modeName: ModeName): Promise<void> {
+    if (this._prevMode === ModeName.Insert && modeName === ModeName.Normal) {
+      let keyboard = String.fromCharCode(cp.execSync('fcitx-remote')[0]);
+      if (keyboard === '2') {
+        cp.execSync('fcitx-remote -c');
+        this._changedKeyBoard = true;
+      }
+    } else if (this._prevMode === ModeName.Normal && modeName === ModeName.Insert) {
+      if (this._changedKeyBoard) {
+        cp.execSync('fcitx-remote -o');
+        this._changedKeyBoard = false;
+      }
+    }
+
     await this.vimState.setCurrentMode(modeName);
     for (let mode of this._modes) {
       mode.isActive = mode.name === modeName;
     }
+    this._prevMode = modeName;
   }
 
   async handleKeyEvent(key: string): Promise<Boolean> {
@@ -1414,8 +1431,8 @@ export class ModeHandler implements vscode.Disposable {
     const easyMotionHighlightRanges =
       this.currentMode.name === ModeName.EasyMotionInputMode
         ? vimState.easyMotion.searchAction
-          .getMatches(vimState.cursorPosition, vimState)
-          .map(x => x.toRange())
+            .getMatches(vimState.cursorPosition, vimState)
+            .map(x => x.toRange())
         : [];
     this.vimState.editor.setDecorations(Decoration.EasyMotion, easyMotionHighlightRanges);
 
